@@ -10,19 +10,16 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
+import kennedy.kyle.r.personalserver.adapters.ListAdapter;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -44,13 +41,14 @@ public class MainActivity extends AppCompatActivity implements
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     public static final String TAG = MainActivity.class.getSimpleName();
     private GoogleApiClient mGoogleApiClient;
-    private String mBaseServerUrl = "http://10.0.2.2:3000/api/";
-    //"http://192.168.0.23:3000/api/";
+    private String mBaseServerUrl = "http://192.168.0.23:3000/api/";
     private ProgressBar mProgressBar;
     private String mRootList;
     private ArrayList<String> mList = new ArrayList<>();
-    private MyListAdapter mListAdapter;
+    private ListAdapter mListAdapter;
     private ListView lv;
+    private String mCurrentPosition;
+    private JSONArray mDataArray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,12 +57,33 @@ public class MainActivity extends AppCompatActivity implements
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         lv = (ListView) findViewById(R.id.listview);
-        mListAdapter = new MyListAdapter(MainActivity.this,
+        mListAdapter = new ListAdapter(MainActivity.this,
                 R.layout.list_item,
                 mList);
 
         lv.setAdapter(mListAdapter);
-        createFileList();
+
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.i(TAG, "onItemClick: " + mList.get(position));
+                
+                saveCurrentPosition(mList.get(position));
+                try {
+                    if(mDataArray.getJSONObject(position).getBoolean("isDir")){
+                        openActivityForNewList();
+                    }else{
+                        //TODO:
+                        Log.i(TAG, "onItemClick: not a fucking dir asshat");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        });
+        getList("");
 
 
 
@@ -79,13 +98,20 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    private void createFileList() {
-        getServerRootList();
+    private void saveCurrentPosition(String position){
+        mCurrentPosition = position;
     }
 
-    private void getServerRootList() {
-        String serverListUrl = mBaseServerUrl + "list";
+    private void openActivityForNewList() {
+        String formatted = mCurrentPosition+"%2F";
+        Log.i(TAG, "openActivityForNewList: "+formatted);
+        getList(formatted);
+    }
 
+
+    private void getList(String path) {
+        String serverListUrl = mBaseServerUrl + "list/" + path;
+        Log.i(TAG, "getList: "+serverListUrl);
         if(isNetworkAvailable()){
             toggleRefresh();
 
@@ -120,17 +146,23 @@ public class MainActivity extends AppCompatActivity implements
                     try {
                         String jsonData = response.body().string();
                         if (response.isSuccessful()) {
-                            JSONArray dataArray = new JSONArray(jsonData);
-                            for (int i = 0; i < dataArray.length(); i++){
-                                mListAdapter.add(dataArray.getJSONObject(i).getString("name"));
-                            }
+                            mDataArray = new JSONArray(jsonData);
+
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
+                                    mListAdapter.clear();
 
+                                    for (int i = 0; i < mDataArray.length(); i++){
+                                        try {
+                                            mListAdapter.add(mDataArray.getJSONObject(i).getString("name"));
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                    Log.i(TAG, "After for loop, mDataAdapter= "+ mDataArray);
                                 }
                             });
-                            Log.i(TAG, "mlist = "+mList);
 
 
                         } else {
@@ -158,13 +190,13 @@ public class MainActivity extends AppCompatActivity implements
         dialog.show(getFragmentManager(), "error_dialog");
     }
 
-    private Dir parseJsonDetails(String jsonData) throws JSONException {
-        Dir dir = new Dir();
-        dir.setChildCount(getChildCount(jsonData));
-        //dir.setName(getName(jsonData));
-        //dir.isDir(getIsDir(jsonData));
-        Log.i(TAG, "parseJsonDetails: "+dir);
-        return dir;
+    private DriveItem parseJsonDetails(String jsonData) throws JSONException {
+        DriveItem driveItem = new DriveItem();
+        driveItem.setChildCount(getChildCount(jsonData));
+        //driveItem.setName(getName(jsonData));
+        //driveItem.isDir(getIsDir(jsonData));
+        Log.i(TAG, "parseJsonDetails: "+ driveItem);
+        return driveItem;
     }
 
     private int getChildCount(String jsonData) throws JSONException {
@@ -217,32 +249,5 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-    private class MyListAdapter extends ArrayAdapter<String> {
-        private int mLayout;
-        public MyListAdapter(Context context, int resource, List<String> objects) {
-            super(context, resource, objects);
-            mLayout = resource;
-        }
 
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder mainViewHolder = null;
-            if(convertView == null) {
-                LayoutInflater inflater = LayoutInflater.from(getContext());
-                convertView = inflater.inflate(mLayout, parent, false);
-                ViewHolder viewHolder = new ViewHolder();
-                viewHolder.mName = (TextView) convertView.findViewById(R.id.list_item_name);
-                viewHolder.mName.setText(getItem(position));
-                convertView.setTag(viewHolder);
-            }else {
-                mainViewHolder = (ViewHolder) convertView.getTag();
-                mainViewHolder.mName.setText(getItem(position));
-            }
-            return convertView;
-        }
-    }
-
-    public class ViewHolder {
-        TextView mName;
-    }
 }
