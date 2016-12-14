@@ -1,10 +1,12 @@
-package kennedy.kyle.r.personalserver;
+package kennedy.kyle.r.personalserver.fragments;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.os.Bundle;
+
+import kennedy.kyle.r.personalserver.R;
 
 public class AlertDialogFragment extends DialogFragment {
     @Override

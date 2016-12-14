@@ -31,4 +31,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.google.android.gms:play-services:9.8.0'
     compile 'com.squareup.okhttp3:okhttp:3.4.1'
+    compile 'net.danlew:android.joda:2.9.5.1'
 }

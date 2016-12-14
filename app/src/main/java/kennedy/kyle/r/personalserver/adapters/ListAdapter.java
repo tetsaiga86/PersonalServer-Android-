@@ -10,13 +10,14 @@ import android.widget.Toast;
 
 import java.util.List;
 
+import kennedy.kyle.r.personalserver.DriveItem;
 import kennedy.kyle.r.personalserver.R;
 import kennedy.kyle.r.personalserver.View.ViewHolder;
 
-public class ListAdapter extends ArrayAdapter<String>{
+public class ListAdapter extends ArrayAdapter<DriveItem>{
     private Context mContext;
     private int mLayout;
-    public ListAdapter(Context context, int resource, List<String> objects) {
+    public ListAdapter(Context context, int resource, List<DriveItem> objects) {
         super(context, resource, objects);
         mLayout = resource;
         mContext = context;
@@ -30,11 +31,11 @@ public class ListAdapter extends ArrayAdapter<String>{
             convertView = inflater.inflate(mLayout, parent, false);
             ViewHolder viewHolder = new ViewHolder();
             viewHolder.setName((TextView) convertView.findViewById(R.id.list_item_name));
-            viewHolder.getName().setText(getItem(position));
+            viewHolder.getName().setText(getItem(position).getName());
             convertView.setTag(viewHolder);
         }else {
             mainViewHolder = (ViewHolder) convertView.getTag();
-            mainViewHolder.getName().setText(getItem(position));
+            mainViewHolder.getName().setText(getItem(position).getName());
         }
 
         return convertView;
