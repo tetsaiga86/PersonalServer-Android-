@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="viewHolder"
+          type="id"></item>
+    <item name="viewData"
+          type="id"></item>
+    <item name="viewPath"
+          type="id"></item>
+    <item name="renameHolder"
+          type="id"></item>
+</resources>

@@ -7,7 +7,7 @@ import android.util.Log;
 
 import net.danlew.android.joda.JodaTimeAndroid;
 
-import kennedy.kyle.r.personalserver.fragments.FragmentActivity;
+import kennedy.kyle.r.personalserver.fragments.ListFragmentActivity;
 
 public class MainActivity extends AppCompatActivity {
     public static final String TAG = MainActivity.class.getSimpleName();
@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void newScreenFragment(){
-        Intent intent = new Intent(getApplicationContext(), FragmentActivity.class);
+        Intent intent = new Intent(getApplicationContext(), ListFragmentActivity.class);
         intent.putExtra("path", mCurrentPosition);
         startActivity(intent);
 
