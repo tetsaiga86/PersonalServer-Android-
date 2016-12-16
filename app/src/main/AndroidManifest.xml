@@ -21,7 +21,7 @@
             android:label="@string/app_name">
         </activity>
         <activity
-            android:name=".fragments.FragmentActivity"
+            android:name=".fragments.ListFragmentActivity"
             android:label="FragmentActivity"
             android:theme="@style/AppTheme.NoActionBar">
         </activity>

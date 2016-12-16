@@ -74,4 +74,12 @@ public class DriveItem {
     public String getName() {
         return mName;
     }
+
+    public String getExtension() {
+        if (mName != null) {
+            String[] split = mName.split("\\.");
+            return split[split.length-1];
+        }
+        return "";
+    }
 }
