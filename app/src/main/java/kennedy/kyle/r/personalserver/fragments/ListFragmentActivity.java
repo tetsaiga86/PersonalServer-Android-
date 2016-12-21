@@ -2,7 +2,9 @@ package kennedy.kyle.r.personalserver.fragments;
 
 import android.content.Intent;
 import android.content.IntentSender;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -10,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -45,11 +48,14 @@ public class ListFragmentActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.list_fragment);
 
+
         mListView =(ListView) findViewById(R.id.fragmentListview);
         registerForContextMenu(mListView);
         Intent intent = getIntent();
         mCurrentPath = (String[]) intent.getCharSequenceArrayExtra("path");
-        refreshListing();
+        if(savedInstanceState == null || savedInstanceState.getParcelable("listState") == null){
+            refreshListing();
+        }
 
         mListAdapter = new ListAdapter(this,
                 R.layout.list_item,
@@ -57,7 +63,9 @@ public class ListFragmentActivity extends AppCompatActivity implements
                 mCurrentPath,
                 mBaseServerUrl,
                 getFragmentManager(), this);
+
         mListView.setAdapter(mListAdapter);
+
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -74,8 +82,69 @@ public class ListFragmentActivity extends AppCompatActivity implements
 
                     Log.i(TAG, "newScreenFragment: called");
                 }else{
-                    //TODO:
-                    Log.i(TAG, "onItemClick: not a fucking dir asshat");
+                    String fileExtension = mList.get(position).getExtension();
+                    String uri = mBaseServerUrl + "download/";
+                    String path = "";
+                    for (int i = 0; i < mCurrentPath.length; i++) {
+                        path += mCurrentPath[i] + "/";
+                    }
+                    uri += Uri.encode(path + mList.get(position).getName());
+                    Uri parsedUri = Uri.parse(uri);
+
+                    Intent implicitIntent = new Intent(Intent.ACTION_VIEW, parsedUri);
+                    Intent chooser = Intent.createChooser(implicitIntent, "Choose App to play media:");
+                    switch(fileExtension) {
+                            case "jpg":
+                            case "png":
+                            case "tiff":
+                                implicitIntent.setDataAndType(parsedUri, "image/*");
+                                if (implicitIntent.resolveActivity(getPackageManager()) != null) {
+                                    startActivity(chooser);
+                                }
+                                break;
+                            case "mp3":
+                            case "wma":
+                                implicitIntent.setDataAndType(parsedUri, "audio/*");
+                                if (implicitIntent.resolveActivity(getPackageManager()) != null) {
+                                    startActivity(chooser);
+                                }else {
+                                    try {
+                                        Intent intent = new Intent(getApplicationContext(), VideoFragmentActivity.class);
+                                        intent.putExtra("uri", uri);
+                                        startActivity(intent);
+                                        Log.i(TAG, "onItemClick: uri=" + uri);
+                                    } catch (Exception e) {
+                                        alertUserAboutError();
+                                        Log.e(TAG, "onItemClick: " + e.getMessage());
+                                    }
+                                }
+                                break;
+                            case "mkv":
+                            case "m4v":
+                            case "avi":
+                            case "mp4":
+                                implicitIntent.setDataAndType(parsedUri, "video/*");
+                                if (implicitIntent.resolveActivity(getPackageManager()) != null) {
+                                    startActivity(chooser);
+                                }else {
+                                    try {
+                                        Intent intent = new Intent(getApplicationContext(), VideoFragmentActivity.class);
+                                        intent.putExtra("uri", uri);
+                                        startActivity(intent);
+                                        Log.i(TAG, "onItemClick: uri=" + uri);
+                                    } catch (Exception e) {
+                                        alertUserAboutError();
+                                        Log.e(TAG, "onItemClick: " + e.getMessage());
+                                    }
+                                }
+                                break;
+                            default:
+                                Toast.makeText(ListFragmentActivity.this,
+                                        mList.get(position).getName()+" is not a recognized file format. Please try downloading to local storage.",
+                                        Toast.LENGTH_LONG)
+                                        .show();
+                        }
+
                 }
 
 
@@ -163,5 +232,29 @@ public class ListFragmentActivity extends AppCompatActivity implements
     private void alertUserAboutError() {
         AlertDialogFragment dialog = new AlertDialogFragment();
         dialog.show(getFragmentManager(), "error_dialog");
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelableArrayList("list", mList);
+        outState.putParcelable("listState", mListView.onSaveInstanceState());
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        if (savedInstanceState != null && savedInstanceState.getParcelableArrayList("list") != null) {
+            ArrayList<DriveItem> items = savedInstanceState.getParcelableArrayList("list");
+            onSuccess(items);
+        }
+        mListView.onRestoreInstanceState(savedInstanceState.getParcelable("listState"));
     }
 }

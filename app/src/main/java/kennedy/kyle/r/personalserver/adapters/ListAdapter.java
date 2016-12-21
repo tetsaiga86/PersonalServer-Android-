@@ -1,7 +1,9 @@
 package kennedy.kyle.r.personalserver.adapters;
 
+import android.app.DownloadManager;
 import android.app.FragmentManager;
 import android.content.Context;
+import android.net.Uri;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
@@ -85,7 +87,14 @@ public class ListAdapter extends ArrayAdapter<DriveItem> implements ApiCallback 
                     icon = R.drawable.ic_person_black_24dp;
                     break;
                 case "mp3":
+                case "wma":
                     icon = R.drawable.ic_music_note_black_24dp;
+                    break;
+                case "mkv":
+                case "m4v":
+                case "avi":
+                case "mp4":
+                    icon = R.drawable.ic_videocam_black_24dp;
                     break;
                 default:
                     icon = R.drawable.file_black_24dp;
@@ -108,7 +117,11 @@ public class ListAdapter extends ArrayAdapter<DriveItem> implements ApiCallback 
                         mActionType = item.getItemId();
                         switch (mActionType){
                             case R.id.download:
-
+                                if(driveItem.isDir()){
+                                    client.zipDownload(mCurrentPath, driveItem.getName());
+                                }else {
+                                    client.download(mCurrentPath, driveItem.getName());
+                                }
                                 break;
                             case R.id.rename:
                                 Log.i("rename", "clicked");
