@@ -93,7 +93,7 @@ public class ListFragmentActivity extends AppCompatActivity implements
 
                     Intent implicitIntent = new Intent(Intent.ACTION_VIEW, parsedUri);
                     Intent chooser = Intent.createChooser(implicitIntent, "Choose App to play media:");
-                    switch(fileExtension) {
+                    switch(fileExtension.toLowerCase()) {
                             case "jpg":
                             case "png":
                             case "tiff":

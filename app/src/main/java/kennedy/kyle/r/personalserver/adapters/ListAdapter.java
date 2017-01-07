@@ -80,7 +80,7 @@ public class ListAdapter extends ArrayAdapter<DriveItem> implements ApiCallback 
         if (getItem(position).isDir()){
             icon = R.drawable.ic_folder_black_24dp;
         } else {
-            switch(fileExtension) {
+            switch(fileExtension.toLowerCase()) {
                 case "jpg":
                 case "png":
                 case "tiff":
