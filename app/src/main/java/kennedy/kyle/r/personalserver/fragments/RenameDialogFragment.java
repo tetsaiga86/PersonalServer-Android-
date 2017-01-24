@@ -17,9 +17,15 @@ public class RenameDialogFragment extends DialogFragment implements ApiCallback{
 
     private String mOldName;
     private String[] mPath;
+    private String mUsername;
+    private String mPassword;
+    private String mDomain;
 
-    public void setListFragmentActivity(ListFragmentActivity listFragmentActivity) {
+    public void setListFragmentActivity(ListFragmentActivity listFragmentActivity, String username, String password, String domain) {
         this.mListFragmentActivity = listFragmentActivity;
+        mUsername = username;
+        mPassword = password;
+        mDomain = domain;
     }
 
     private ListFragmentActivity mListFragmentActivity;
@@ -46,7 +52,8 @@ public class RenameDialogFragment extends DialogFragment implements ApiCallback{
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String userInputValue = userInput.getText().toString();
-                        ApiClient client = new ApiClient(RenameDialogFragment.this, getActivity().getApplicationContext());
+                        ApiClient client = new ApiClient(RenameDialogFragment.this, getActivity().getApplicationContext(),
+                                mUsername, mPassword, mDomain);
                         client.rename(mPath, mOldName, userInputValue);
                     }
 

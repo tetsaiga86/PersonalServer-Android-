@@ -34,12 +34,19 @@ public class ListAdapter extends ArrayAdapter<DriveItem> implements ApiCallback 
     private String mSerializedPath;
     private int mActionType;
     private ListFragmentActivity mListFragmentActivity;
+    private String mUsername;
+    private String mPassword;
+    private String mDomain;
     public ListAdapter(Context context, int resource,
                        List<DriveItem> objects,
                        String[] path, String baseUrl,
                        FragmentManager fragManager,
-                       ListFragmentActivity listFragmentActivity) {
+                       ListFragmentActivity listFragmentActivity,
+                       String username, String password, String domain) {
         super(context, resource, objects);
+        mUsername = username;
+        mPassword = password;
+        mDomain = domain;
         mLayout = resource;
         mContext = context;
         mCurrentPath = path;
@@ -109,7 +116,7 @@ public class ListAdapter extends ArrayAdapter<DriveItem> implements ApiCallback 
                 final PopupMenu popup = new PopupMenu(getContext(), v);
                 MenuInflater inflater = popup.getMenuInflater();
                 inflater.inflate(R.menu.item_menu, popup.getMenu());
-                final ApiClient client = new ApiClient(ListAdapter.this, mContext);
+                final ApiClient client = new ApiClient(ListAdapter.this, mContext, mUsername, mPassword, mDomain);
                 popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
@@ -128,7 +135,7 @@ public class ListAdapter extends ArrayAdapter<DriveItem> implements ApiCallback 
                                 RenameDialogFragment rename = new RenameDialogFragment();
                                 rename.setPath(mCurrentPath);
                                 rename.setOldName(driveItem.getName());
-                                rename.setListFragmentActivity(mListFragmentActivity);
+                                rename.setListFragmentActivity(mListFragmentActivity, mUsername, mPassword, mDomain);
                                 rename.show(mFragManager, "rename_dialog");
 
                                 break;

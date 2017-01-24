@@ -5,9 +5,11 @@ import android.content.IntentSender;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.provider.Browser;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -19,6 +21,8 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
 
 import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -39,9 +43,16 @@ public class ListFragmentActivity extends AppCompatActivity implements
     public static final String TAG = ListFragmentActivity.class.getSimpleName();
     private ListView mListView;
     private ListAdapter mListAdapter;
-    private String mBaseServerUrl = "http://192.168.0.23:3000/api/";
+    private String mJsonString;
+    private JSONObject mJson;
+    private String mBaseServerUrl;
+    private String mBaseServerUrlWithLogin;
     private JSONArray mDataArray;
     private GoogleApiClient mGoogleApiClient;
+    private String mDomain = "";
+    private String mLoginInfo = "";
+    private String mUserName = "";
+    private String mPassword = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
@@ -53,6 +64,24 @@ public class ListFragmentActivity extends AppCompatActivity implements
         registerForContextMenu(mListView);
         Intent intent = getIntent();
         mCurrentPath = (String[]) intent.getCharSequenceArrayExtra("path");
+        mJsonString = intent.getStringExtra("jsonString");
+        try {
+            Log.i(TAG, "onCreate: "+mJsonString);
+            mJson = new JSONObject(mJsonString);
+            mBaseServerUrl = mJson.getString("url") + "/api/";
+            Log.i(TAG, "onCreate: " + mBaseServerUrl);
+            String[] serverUrl = mJson.getString("url").split("");
+            for (int i=9; i<serverUrl.length; i++){
+                mDomain += serverUrl[i];
+            }
+            mUserName = mJson.getString("username");
+            mPassword = mJson.getString("password");
+            mLoginInfo = mUserName + ":" + mPassword;
+            mBaseServerUrlWithLogin = "https://" + mLoginInfo + "@" + mDomain + "/api/";
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
         if(savedInstanceState == null || savedInstanceState.getParcelable("listState") == null){
             refreshListing();
         }
@@ -62,7 +91,8 @@ public class ListFragmentActivity extends AppCompatActivity implements
                 mList,
                 mCurrentPath,
                 mBaseServerUrl,
-                getFragmentManager(), this);
+                getFragmentManager(), this,
+                mUserName, mPassword, mDomain);
 
         mListView.setAdapter(mListAdapter);
 
@@ -78,21 +108,28 @@ public class ListFragmentActivity extends AppCompatActivity implements
                     newPath[mCurrentPath.length] = mList.get(position).getName();
                     Intent intent = new Intent(getApplicationContext(), ListFragmentActivity.class);
                     intent.putExtra("path", newPath);
+                    intent.putExtra("jsonString", mJsonString);
                     startActivity(intent);
 
                     Log.i(TAG, "newScreenFragment: called");
                 }else{
                     String fileExtension = mList.get(position).getExtension();
-                    String uri = mBaseServerUrl + "download/";
+                    String uri = mBaseServerUrlWithLogin + "download/";
                     String path = "";
                     for (int i = 0; i < mCurrentPath.length; i++) {
                         path += mCurrentPath[i] + "/";
                     }
                     uri += Uri.encode(path + mList.get(position).getName());
                     Uri parsedUri = Uri.parse(uri);
-
+                    Log.i(TAG, "onItemClick: "+ parsedUri);
                     Intent implicitIntent = new Intent(Intent.ACTION_VIEW, parsedUri);
+                    String auth = mLoginInfo;
+                    String authBase64 = Base64.encodeToString(auth.getBytes(), Base64.NO_WRAP);
+                    Bundle bundle = new Bundle();
+                    bundle.putString("Authorization", "Basic " + authBase64);
+                    implicitIntent.putExtra(Browser.EXTRA_HEADERS, bundle);
                     Intent chooser = Intent.createChooser(implicitIntent, "Choose App to play media:");
+                    chooser.putExtra(Browser.EXTRA_HEADERS, bundle);
                     switch(fileExtension.toLowerCase()) {
                             case "jpg":
                             case "png":
@@ -181,7 +218,7 @@ public class ListFragmentActivity extends AppCompatActivity implements
 
 
     private void getList(String path) {
-        ApiClient newCall = new ApiClient(this, getApplicationContext());
+        ApiClient newCall = new ApiClient(this, getApplicationContext(), mUserName, mPassword, mDomain);
         newCall.getList(path);
     }
 

@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
     <uses-permission android:name="android.permission.READ_PROFILE"/>
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
-
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 <application
@@ -16,11 +16,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity
-            android:name=".LoginActivity">
-            <!--android:label="@string/app_name">-->
-        </activity>
-        <activity
+    <activity
             android:name=".fragments.ListFragmentActivity"
             android:label="FragmentActivity"
             android:theme="@style/AppTheme.NoActionBar">
