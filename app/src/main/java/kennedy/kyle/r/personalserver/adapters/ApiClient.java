@@ -10,6 +10,8 @@ import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Environment;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -19,6 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.Authenticator;
 import java.util.ArrayList;
 
 import kennedy.kyle.r.personalserver.DriveItem;
@@ -27,11 +30,13 @@ import kennedy.kyle.r.personalserver.R;
 import kennedy.kyle.r.personalserver.fragments.DownloadDialogFragment;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.Route;
 
 public class ApiClient{
     public ArrayList<DriveItem> mList = new ArrayList<>();
@@ -39,11 +44,24 @@ public class ApiClient{
     public JSONArray mDataArray;
     private Context mContext;
     private ApiCallback mCaller;
-    public static final String BASE_URL = "http://192.168.0.23:3000/api/";
+    public static final String PROTOCOL = "https://";
+    public String mUsername;
+    public String mPassword;
+    public String mLoginInfo;
+    public String mDomain;
+    public String mBaseUrl;
+    private String mEncodedCredentials;
 
-    public ApiClient(ApiCallback caller, Context context) {
+    public ApiClient(ApiCallback caller, Context context, String username, String password, String domain) {
         mCaller = caller;
         mContext = context;
+        mUsername = username;
+        mPassword = password;
+        mLoginInfo = username+":"+password;
+        mDomain = domain;
+        mBaseUrl = PROTOCOL + domain + "/api/";
+        mEncodedCredentials = "Basic " + Base64.encodeToString(mLoginInfo.getBytes(), Base64.NO_WRAP);
+
     }
 
     private String getUrlPathFragment(String[] folders) {
@@ -66,7 +84,21 @@ public class ApiClient{
         if (!ensureNetworkAvailable()) {
             return;
         }
-        OkHttpClient client = new OkHttpClient();
+
+        okhttp3.Authenticator authenticator = new okhttp3.Authenticator() {
+
+            @Override
+            public Request authenticate(Route route, Response response) throws IOException {
+
+                String credential = Credentials.basic(mUsername, mPassword);
+                return response.request().newBuilder()
+                        .header("Authorization", credential)
+                        .build();
+            }
+        };
+        OkHttpClient client = new OkHttpClient.Builder()
+                .authenticator(authenticator)
+                .build();
         Request request = new Request.Builder()
                 .url(path)
                 .build();
@@ -114,7 +146,20 @@ public class ApiClient{
         if (!ensureNetworkAvailable()) {
             return;
         }
-        OkHttpClient client = new OkHttpClient();
+        okhttp3.Authenticator authenticator = new okhttp3.Authenticator() {
+
+            @Override
+            public Request authenticate(Route route, Response response) throws IOException {
+
+                String credential = Credentials.basic(mUsername, mPassword);
+                return response.request().newBuilder()
+                        .header("Authorization", credential)
+                        .build();
+            }
+        };
+        OkHttpClient client = new OkHttpClient.Builder()
+                .authenticator(authenticator)
+                .build();
         JSONObject postBody = new JSONObject();
         try {
             postBody.put("newPath", getPathFragment(folderNames) + newFileName);
@@ -124,7 +169,7 @@ public class ApiClient{
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"), postBody.toString());
 
         Request request = new Request.Builder()
-                .url(BASE_URL+"rename/"+getUrlPathFragment(folderNames)+oldFileName)
+                .url(mBaseUrl+"rename/"+getUrlPathFragment(folderNames)+oldFileName)
                 .post(requestBody)
                 .build();
 
@@ -153,39 +198,18 @@ public class ApiClient{
         if (!ensureNetworkAvailable()) {
             return;
         }
-        Log.i(TAG, "download, url sent: "+BASE_URL+"download/"+Uri.encode(getPathFragment(folderNames)+name));
         final DownloadManager downloadManager = (DownloadManager) mContext.getSystemService(Context.DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(BASE_URL+"download/"+Uri.encode(getPathFragment(folderNames)+name)));
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mBaseUrl+"download/"+Uri.encode(getPathFragment(folderNames)+name)));
+        Log.i(TAG, "download request: " + mBaseUrl+"download/"+Uri.encode(getPathFragment(folderNames)+name));
+        request.addRequestHeader("Authorization", mEncodedCredentials);
         request.setTitle(name)
                 .setDescription(getPathFragment(folderNames))
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                .setDestinationInExternalFilesDir(mContext, Environment.DIRECTORY_DOWNLOADS, name)
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setVisibleInDownloadsUi(true)
+                .allowScanningByMediaScanner();
 
-        final long enqueuedDownloadId = downloadManager.enqueue(request);
-
-//        BroadcastReceiver receiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                String action = intent.getAction();
-//                if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(action)) {
-//                    long downloadId = intent.getLongExtra(
-//                            DownloadManager.EXTRA_DOWNLOAD_ID, 0);
-//                    DownloadManager.Query query = new DownloadManager.Query();
-//                    query.setFilterById(enqueuedDownloadId);
-//                    Cursor c = downloadManager.query(query);
-//                    if (c.moveToFirst()) {
-//                        int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
-//                        if (DownloadManager.STATUS_SUCCESSFUL == c.getInt(columnIndex)) {
-//                            mContext.getApplicationContext();
-//                            DownloadDialogFragment newFrag = new DownloadDialogFragment();
-//                            newFrag.setFileName(name);
-//                            newFrag.show(((Activity)context).getFragmentManager(),"download_tag");
-//                        }
-//                    }
-//                }
-//            }
-//        };
-
-//        mContext.registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        downloadManager.enqueue(request);
         Toast.makeText(mContext, name+" has begun downloading!", Toast.LENGTH_LONG).show();
     }
 
@@ -195,36 +219,15 @@ public class ApiClient{
         }
 
         final DownloadManager downloadManager = (DownloadManager) mContext.getSystemService(Context.DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(BASE_URL+"zip/"+Uri.encode(getPathFragment(folderNames)+name)));
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mBaseUrl+"zip/"+Uri.encode(getPathFragment(folderNames)+name)));
+        request.addRequestHeader("Authorization", mEncodedCredentials);
         request.setTitle(name)
                 .setDescription(getPathFragment(folderNames))
+                .setDestinationInExternalFilesDir(mContext, Environment.DIRECTORY_DOWNLOADS, name)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
-        final long enqueuedDownloadId = downloadManager.enqueue(request);
+        downloadManager.enqueue(request);
 
-//        BroadcastReceiver receiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                String action = intent.getAction();
-//                if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(action)) {
-//                    long downloadId = intent.getLongExtra(
-//                            DownloadManager.EXTRA_DOWNLOAD_ID, 0);
-//                    DownloadManager.Query query = new DownloadManager.Query();
-//                    query.setFilterById(enqueuedDownloadId);
-//                    Cursor c = downloadManager.query(query);
-//                    if (c.moveToFirst()) {
-//                        int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
-//                        if (DownloadManager.STATUS_SUCCESSFUL == c.getInt(columnIndex)) {
-//                            DownloadDialogFragment newFrag = new DownloadDialogFragment();
-//                            newFrag.setFileName(name);
-//                            newFrag.show(((Activity)context).getFragmentManager(),"download_tag");
-//                        }
-//                    }
-//                }
-//            }
-//        };
-//
-//        mContext.registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
         Toast.makeText(mContext, name+" has begun zipping and will begin downloading shortly!", Toast.LENGTH_LONG).show();
     }
 
@@ -233,10 +236,23 @@ public class ApiClient{
             return;
         }
 
-        Log.i(TAG, "delete, url sent: "+BASE_URL+"remove/"+getUrlPathFragment(folderNames)+name);
-        OkHttpClient client = new OkHttpClient();
+        Log.i(TAG, "delete, url sent: "+mBaseUrl+"remove/"+getUrlPathFragment(folderNames)+name);
+        okhttp3.Authenticator authenticator = new okhttp3.Authenticator() {
+
+            @Override
+            public Request authenticate(Route route, Response response) throws IOException {
+
+                String credential = Credentials.basic(mUsername, mPassword);
+                return response.request().newBuilder()
+                        .header("Authorization", credential)
+                        .build();
+            }
+        };
+        OkHttpClient client = new OkHttpClient.Builder()
+                .authenticator(authenticator)
+                .build();
         Request request = new Request.Builder()
-                .url(BASE_URL+"remove/"+getUrlPathFragment(folderNames)+name)
+                .url(mBaseUrl+"remove/"+getUrlPathFragment(folderNames)+name)
                 .delete()
                 .build();
 
