@@ -50,7 +50,6 @@ public class ListAdapter extends ArrayAdapter<DriveItem> implements ApiCallback 
         mLayout = resource;
         mContext = context;
         mCurrentPath = path;
-        //TODO strip out mBaseUrl
         mBaseUrl = baseUrl;
         mFragManager = fragManager;
         mSerializedPath = "";

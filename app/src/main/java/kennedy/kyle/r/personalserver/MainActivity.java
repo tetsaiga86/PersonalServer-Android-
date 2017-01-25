@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("path", mCurrentPosition);
         intent.putExtra("jsonString", mJsonString);
         startActivity(intent);
+        finish();
 
         Log.i(TAG, "newScreenFragment: called");
     }

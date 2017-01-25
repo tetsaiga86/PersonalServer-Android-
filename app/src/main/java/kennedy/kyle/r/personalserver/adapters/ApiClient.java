@@ -59,7 +59,7 @@ public class ApiClient{
         mPassword = password;
         mLoginInfo = username+":"+password;
         mDomain = domain;
-        mBaseUrl = PROTOCOL + domain;
+        mBaseUrl = PROTOCOL + domain + "/api/";
         mEncodedCredentials = "Basic " + Base64.encodeToString(mLoginInfo.getBytes(), Base64.NO_WRAP);
 
     }
@@ -169,7 +169,7 @@ public class ApiClient{
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"), postBody.toString());
 
         Request request = new Request.Builder()
-                .url(mBaseUrl+"/api/rename/"+getUrlPathFragment(folderNames)+oldFileName)
+                .url(mBaseUrl+"rename/"+getUrlPathFragment(folderNames)+oldFileName)
                 .post(requestBody)
                 .build();
 
@@ -199,40 +199,17 @@ public class ApiClient{
             return;
         }
         final DownloadManager downloadManager = (DownloadManager) mContext.getSystemService(Context.DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mBaseUrl+"/api/download/"+Uri.encode(getPathFragment(folderNames)+name)));
-        Log.i(TAG, "download request: " + mBaseUrl+"/api/download/"+Uri.encode(getPathFragment(folderNames)+name));
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mBaseUrl+"download/"+Uri.encode(getPathFragment(folderNames)+name)));
+        Log.i(TAG, "download request: " + mBaseUrl+"download/"+Uri.encode(getPathFragment(folderNames)+name));
         request.addRequestHeader("Authorization", mEncodedCredentials);
         request.setTitle(name)
                 .setDescription(getPathFragment(folderNames))
                 .setDestinationInExternalFilesDir(mContext, Environment.DIRECTORY_DOWNLOADS, name)
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setVisibleInDownloadsUi(true)
+                .allowScanningByMediaScanner();
 
-        final long enqueuedDownloadId = downloadManager.enqueue(request);
-
-//        BroadcastReceiver receiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                String action = intent.getAction();
-//                if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(action)) {
-//                    long downloadId = intent.getLongExtra(
-//                            DownloadManager.EXTRA_DOWNLOAD_ID, 0);
-//                    DownloadManager.Query query = new DownloadManager.Query();
-//                    query.setFilterById(enqueuedDownloadId);
-//                    Cursor c = downloadManager.query(query);
-//                    if (c.moveToFirst()) {
-//                        int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
-//                        if (DownloadManager.STATUS_SUCCESSFUL == c.getInt(columnIndex)) {
-//                            mContext.getApplicationContext();
-//                            DownloadDialogFragment newFrag = new DownloadDialogFragment();
-//                            newFrag.setFileName(name);
-//                            newFrag.show(((Activity)context).getFragmentManager(),"download_tag");
-//                        }
-//                    }
-//                }
-//            }
-//        };
-
-//        mContext.registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        downloadManager.enqueue(request);
         Toast.makeText(mContext, name+" has begun downloading!", Toast.LENGTH_LONG).show();
     }
 
@@ -242,38 +219,15 @@ public class ApiClient{
         }
 
         final DownloadManager downloadManager = (DownloadManager) mContext.getSystemService(Context.DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mBaseUrl+"/api/zip/"+Uri.encode(getPathFragment(folderNames)+name)));
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mBaseUrl+"zip/"+Uri.encode(getPathFragment(folderNames)+name)));
         request.addRequestHeader("Authorization", mEncodedCredentials);
         request.setTitle(name)
                 .setDescription(getPathFragment(folderNames))
                 .setDestinationInExternalFilesDir(mContext, Environment.DIRECTORY_DOWNLOADS, name)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
-        final long enqueuedDownloadId = downloadManager.enqueue(request);
+        downloadManager.enqueue(request);
 
-//        BroadcastReceiver receiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                String action = intent.getAction();
-//                if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(action)) {
-//                    long downloadId = intent.getLongExtra(
-//                            DownloadManager.EXTRA_DOWNLOAD_ID, 0);
-//                    DownloadManager.Query query = new DownloadManager.Query();
-//                    query.setFilterById(enqueuedDownloadId);
-//                    Cursor c = downloadManager.query(query);
-//                    if (c.moveToFirst()) {
-//                        int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
-//                        if (DownloadManager.STATUS_SUCCESSFUL == c.getInt(columnIndex)) {
-//                            DownloadDialogFragment newFrag = new DownloadDialogFragment();
-//                            newFrag.setFileName(name);
-//                            newFrag.show(((Activity)context).getFragmentManager(),"download_tag");
-//                        }
-//                    }
-//                }
-//            }
-//        };
-//
-//        mContext.registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
         Toast.makeText(mContext, name+" has begun zipping and will begin downloading shortly!", Toast.LENGTH_LONG).show();
     }
 
@@ -282,7 +236,7 @@ public class ApiClient{
             return;
         }
 
-        Log.i(TAG, "delete, url sent: "+mBaseUrl+"/api/remove/"+getUrlPathFragment(folderNames)+name);
+        Log.i(TAG, "delete, url sent: "+mBaseUrl+"remove/"+getUrlPathFragment(folderNames)+name);
         okhttp3.Authenticator authenticator = new okhttp3.Authenticator() {
 
             @Override
@@ -298,7 +252,7 @@ public class ApiClient{
                 .authenticator(authenticator)
                 .build();
         Request request = new Request.Builder()
-                .url(mBaseUrl+"/api/remove/"+getUrlPathFragment(folderNames)+name)
+                .url(mBaseUrl+"remove/"+getUrlPathFragment(folderNames)+name)
                 .delete()
                 .build();
 

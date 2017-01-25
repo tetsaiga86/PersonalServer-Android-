@@ -1,5 +1,6 @@
 package kennedy.kyle.r.personalserver.fragments;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.net.Uri;
@@ -31,6 +32,7 @@ import kennedy.kyle.r.personalserver.DriveItem;
 import kennedy.kyle.r.personalserver.R;
 import kennedy.kyle.r.personalserver.adapters.ApiClient;
 import kennedy.kyle.r.personalserver.adapters.ListAdapter;
+import okhttp3.Credentials;
 
 
 public class ListFragmentActivity extends AppCompatActivity implements
@@ -123,20 +125,16 @@ public class ListFragmentActivity extends AppCompatActivity implements
                     Uri parsedUri = Uri.parse(uri);
                     Log.i(TAG, "onItemClick: "+ parsedUri);
                     Intent implicitIntent = new Intent(Intent.ACTION_VIEW, parsedUri);
-                    String auth = mLoginInfo;
-                    String authBase64 = Base64.encodeToString(auth.getBytes(), Base64.NO_WRAP);
-                    Bundle bundle = new Bundle();
-                    bundle.putString("Authorization", "Basic " + authBase64);
-                    implicitIntent.putExtra(Browser.EXTRA_HEADERS, bundle);
                     Intent chooser = Intent.createChooser(implicitIntent, "Choose App to play media:");
-                    chooser.putExtra(Browser.EXTRA_HEADERS, bundle);
                     switch(fileExtension.toLowerCase()) {
                             case "jpg":
                             case "png":
                             case "tiff":
-                                implicitIntent.setDataAndType(parsedUri, "image/*");
+                                implicitIntent.setData(parsedUri);
                                 if (implicitIntent.resolveActivity(getPackageManager()) != null) {
                                     startActivity(chooser);
+                                } else {
+                                    alertUserAboutError();
                                 }
                                 break;
                             case "mp3":
@@ -146,9 +144,7 @@ public class ListFragmentActivity extends AppCompatActivity implements
                                     startActivity(chooser);
                                 }else {
                                     try {
-                                        Intent intent = new Intent(getApplicationContext(), VideoFragmentActivity.class);
-                                        intent.putExtra("uri", uri);
-                                        startActivity(intent);
+                                        startActivity(implicitIntent);
                                         Log.i(TAG, "onItemClick: uri=" + uri);
                                     } catch (Exception e) {
                                         alertUserAboutError();
