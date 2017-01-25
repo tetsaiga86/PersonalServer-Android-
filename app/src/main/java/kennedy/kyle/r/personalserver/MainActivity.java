@@ -44,8 +44,12 @@ public class MainActivity extends AppCompatActivity {
         mLoginBtn.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
                 SharedPreferences login = MainActivity.this.getSharedPreferences("Login", 0);
-                mJsonString = login.getString("JsonString", null);
-                newScreenFragment();
+                if (login.contains("JsonString")) {
+                    mJsonString = login.getString("JsonString", null);
+                    newScreenFragment();
+                }else{
+                    Toast.makeText(getApplicationContext(), "Scan QR code to setup client", Toast.LENGTH_LONG).show();
+                }
             }
         });
     }
@@ -75,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(intent, 0);
         } catch (ActivityNotFoundException anfe) {
             //on catch, show the download dialog
-            showDialog(MainActivity.this, "No Scanner Found", "Download a scanner code activity?", "Yes", "No").show();
+            showDialog(MainActivity.this, "No Scanner Found", "Download a QR scanner?", "Yes", "No").show();
         }
 
     }
